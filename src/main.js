@@ -169,6 +169,7 @@ function renderResults(result) {
             ${rf('Deadline', 'deadline', d.actionPlan.deadline)}
             ${rf('Priority', 'priority', d.actionPlan.priority)}
             ${rf('Financial', 'financialImplication', d.actionPlan.financialImplication)}
+            ${rf('Risk', 'riskIfNotComplied', d.actionPlan.riskIfNotComplied)}
           </div>
         </div>
 
