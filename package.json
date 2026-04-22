@@ -1,0 +1,15 @@
+{
+  "name": "valor-legal-order-resolution",
+  "private": true,
+  "version": "1.0.0",
+  "description": "V.A.L.O.R. — Verified Actionable Legal Order Resolution",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>V.A.L.O.R. — Verified Actionable Legal Order Resolution</title>
+  <meta name="description" content="AI-powered decision-support system that converts court judgment PDFs into structured, actionable compliance plans for government departments." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/src/styles/index.css" />
+  <link rel="stylesheet" href="/src/styles/components.css" />
+  <link rel="stylesheet" href="/src/styles/upload.css" />
+  <link rel="stylesheet" href="/src/styles/results.css" />
+  <link rel="stylesheet" href="/src/styles/dashboard.css" />
+</head>
+<body>
+  <!-- Spotlight cursor follower -->
+  <div id="spotlight-overlay"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="header-logo">V</div>
+        <div class="header-title">V.A.L.O.<span>R.</span></div>
+      </div>
+      <div class="header-nav">
+        <button class="nav-tab active" id="tab-upload">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload
+        </button>
+        <button class="nav-tab" id="tab-dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          Dashboard
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Upload Page -->
+  <div class="page active" id="page-upload">
+    <div class="app-container">
+      <div class="upload-page-hero">
+        <h1>Analyze Court Judgments</h1>
+        <p>Upload a court judgment PDF and let AI extract actionable directives, deadlines, and compliance plans.</p>
+      </div>
+
+      <div class="drop-zone" id="drop-zone">
+        <div class="drop-zone-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <h3>Drop your Court Judgment PDF here</h3>
+        <p>or <span class="browse-link">browse files</span> — PDF only, up to 50MB</p>
+      </div>
+      <input type="file" accept=".pdf" class="file-input-hidden" id="file-input" />
+
+      <div class="file-info" id="file-info">
+        <div class="file-info-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+        </div>
+        <div class="file-info-details">
+          <div class="file-info-name" id="file-name">document.pdf</div>
+          <div class="file-info-meta" id="file-meta">0 KB</div>
+        </div>
+        <button class="file-info-remove" id="file-remove" title="Remove file">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="analyze-section">
+        <button class="btn btn-primary btn-analyze" id="btn-analyze" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          Analyze Document
+        </button>
+      </div>
+
+      <div class="pipeline-container" id="pipeline-container">
+        <div class="pipeline-header">
+          <h2>Processing Pipeline</h2>
+          <p>Analyzing your document through 4 stages</p>
+        </div>
+        <div class="pipeline-steps">
+          <div class="pipeline-step" id="step-load">
+            <div class="step-indicator">1</div>
+            <div class="step-content">
+              <div class="step-label">Loading PDF</div>
+              <div class="step-desc">Reading document structure</div>
+              <div class="step-progress"><div class="step-progress-fill"></div></div>
+            </div>
+            <div class="step-percentage">0%</div>
+          </div>
+          <div class="pipeline-step" id="step-extract">
+            <div class="step-indicator">2</div>
+            <div class="step-content">
+              <div class="step-label">Extracting Text</div>
+              <div class="step-desc">Reading text from pages</div>
+              <div class="step-progress"><div class="step-progress-fill"></div></div>
+            </div>
+            <div class="step-percentage">0%</div>
+          </div>
+          <div class="pipeline-step" id="step-ai">
+            <div class="step-indicator">3</div>
+            <div class="step-content">
+              <div class="step-label">AI Analysis</div>
+              <div class="step-desc">Extracting entities and directives</div>
+              <div class="step-progress"><div class="step-progress-fill"></div></div>
+            </div>
+            <div class="step-percentage">0%</div>
+          </div>
+          <div class="pipeline-step" id="step-validate">
+            <div class="step-indicator">4</div>
+            <div class="step-content">
+              <div class="step-label">Validation</div>
+              <div class="step-desc">Verifying output schema</div>
+              <div class="step-progress"><div class="step-progress-fill"></div></div>
+            </div>
+            <div class="step-percentage">0%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Page -->
+  <div class="page" id="page-results"></div>
+
+  <!-- Dashboard Page -->
+  <div class="page" id="page-dashboard"></div>
+
+  <div class="toast-container"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
