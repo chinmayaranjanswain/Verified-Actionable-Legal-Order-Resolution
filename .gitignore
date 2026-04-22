@@ -41,5 +41,8 @@ Thumbs.db
 .claude/
 .cursor/
 
+# Tracking/Skill configurations
+skills-lock.json
+
 # Testing
 /coverage

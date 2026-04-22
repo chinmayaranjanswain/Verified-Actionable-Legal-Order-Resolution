@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>V.A.L.O.R. — Verified Actionable Legal Order Resolution</title>
-  <meta name="description" content="AI-powered decision-support system that converts court judgment PDFs into structured, actionable compliance plans for government departments." />
+  <meta name="description" content="AI-powered decision-support system that converts court judgment PDFs into structured, actionable compliance plans." />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/src/styles/index.css" />
   <link rel="stylesheet" href="/src/styles/components.css" />
@@ -13,8 +13,6 @@
   <link rel="stylesheet" href="/src/styles/dashboard.css" />
 </head>
 <body>
-  <!-- Spotlight cursor follower -->
-  <div id="spotlight-overlay"></div>
 
   <!-- Header -->
   <header class="header">
@@ -40,15 +38,15 @@
   <div class="page active" id="page-upload">
     <div class="app-container">
       <div class="upload-page-hero">
-        <h1>Analyze Court Judgments</h1>
-        <p>Upload a court judgment PDF and let AI extract actionable directives, deadlines, and compliance plans.</p>
+        <h1>ANALYZE<br><span class="highlight">COURT</span><br>JUDGMENTS</h1>
+        <p>Upload a court judgment PDF and let AI extract actionable directives, deadlines, and compliance plans for your department.</p>
       </div>
 
       <div class="drop-zone" id="drop-zone">
         <div class="drop-zone-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </div>
-        <h3>Drop your Court Judgment PDF here</h3>
+        <h3>Drop your judgment PDF here</h3>
         <p>or <span class="browse-link">browse files</span> — PDF only, up to 50MB</p>
       </div>
       <input type="file" accept=".pdf" class="file-input-hidden" id="file-input" />
