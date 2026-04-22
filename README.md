@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/valor-icon.png" alt="V.A.L.O.R. Logo" width="180" />
+  <img src="public/valor icon.png" alt="V.A.L.O.R. Logo" width="180" />
 </p>
 
 <h1 align="center">V.A.L.O.R.</h1>
