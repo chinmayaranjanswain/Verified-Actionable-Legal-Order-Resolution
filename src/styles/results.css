@@ -2,6 +2,32 @@
 
 .results-page { animation: fadeUp 0.4s ease; }
 
+/* ── Back Button ─────────── */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  margin-bottom: var(--sp-lg);
+  border: var(--border);
+  background: white;
+  color: var(--ink);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all var(--t-fast);
+  box-shadow: var(--shadow-btn);
+}
+.back-btn:hover {
+  background: var(--yellow);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-card);
+}
+.back-btn svg { flex-shrink: 0; }
+
 .results-header { margin-bottom: var(--sp-xl); }
 .results-header h1 { margin-bottom: var(--sp-xs); }
 .results-header p { font-size: 0.9375rem; }

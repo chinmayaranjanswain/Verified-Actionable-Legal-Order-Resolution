@@ -7,14 +7,18 @@ import { formatFileSize, getConfidenceClass, getConfidenceLabel, showToast, ICON
 
 let pdfEntries = []; // {file, text, status, result}
 let currentResults = null;
+let lastPage = 'upload'; // track where user came from
 
-function navigate(page) {
+function navigate(page, fromPage) {
+  if (fromPage) lastPage = fromPage;
+  else if (page !== 'results') lastPage = page;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById(`page-${page}`)?.classList.add('active');
   document.getElementById(`tab-${page}`)?.classList.add('active');
   if (page === 'dashboard') renderDashboard();
   if (page === 'settings') renderSettings();
+  window.scrollTo(0, 0);
 }
 
 // ═══ UPLOAD ZONE ═══
@@ -186,7 +190,10 @@ function renderResults(result) {
   const page = document.getElementById('page-results'); if (!page) return;
   const d = result.data;
   const dirAvg = d.keyDirections.reduce((s,x)=>s+x.confidence,0)/d.keyDirections.length;
+  const backLabel = lastPage === 'dashboard' ? 'Back to Dashboard' : 'Back to Upload';
+  const backIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="m15 18-6-6 6-6"/></svg>`;
   page.innerHTML = `<div class="app-container results-page">
+    <button class="back-btn" onclick="window.goBack()">${backIcon} ${backLabel}</button>
     <div class="results-header">
       <h1>Analysis <span class="highlight">Complete</span></h1>
       <p>Review extracted data. Edit fields as needed, then approve or reject.</p>
@@ -216,6 +223,7 @@ function renderResults(result) {
       <button class="btn btn-primary btn-lg" onclick="window.approveResults()">${ICONS.check} Approve & Save</button>
       <button class="btn btn-secondary btn-lg" onclick="window.saveEdits()">${ICONS.edit} Save Edits</button>
       <button class="btn btn-danger btn-lg" onclick="window.rejectResults()">${ICONS.x} Reject</button>
+      <button class="btn btn-lg" onclick="window.goBack()" style="margin-left:auto">${backIcon} ${backLabel}</button>
     </div>
   </div>`;
 }
@@ -230,6 +238,7 @@ function rd(dir,i) {
 }
 
 // ═══ ACTIONS ═══
+window.goBack = function() { navigate(lastPage || 'upload'); };
 window.approveResults = function() { const e=collectEdits(); e.status='approved'; e.approvedAt=new Date().toISOString(); saveRecord(e); showToast('Record approved','success'); currentResults=null; navigate('dashboard'); };
 window.saveEdits = function() { collectEdits(); showToast('Edits saved locally','success'); };
 window.rejectResults = function() { const e=collectEdits(); e.status='rejected'; saveRecord(e); showToast('Record rejected','error'); currentResults=null; navigate('upload'); };
