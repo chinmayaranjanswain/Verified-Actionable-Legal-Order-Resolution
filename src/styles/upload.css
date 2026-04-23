@@ -97,6 +97,142 @@
 .file-info-remove:hover { color: var(--red); background: var(--red-soft); border-color: var(--red); }
 .file-info-remove svg { width: 14px; height: 14px; }
 
+/* ── PDF Cards ─────────── */
+.pdf-cards-container {
+  display: flex; flex-direction: column;
+  gap: var(--sp-md);
+  margin-top: var(--sp-lg);
+}
+
+.pdf-card {
+  background: white;
+  border: var(--border);
+  box-shadow: var(--shadow-card-sm);
+  animation: fadeUp 0.3s ease backwards;
+  transition: all var(--t-fast);
+  overflow: hidden;
+}
+.pdf-card:hover { box-shadow: var(--shadow-card); transform: translate(-1px, -1px); }
+
+.pdf-card-header {
+  display: flex; align-items: center;
+  gap: var(--sp-md);
+  padding: 14px 20px;
+  border-bottom: var(--border-thin);
+  background: var(--paper-warm);
+}
+
+.pdf-card-number {
+  width: 30px; height: 30px; flex-shrink: 0;
+  background: var(--ink);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.6875rem; font-weight: 800;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.pdf-card-info { flex: 1; min-width: 0; }
+.pdf-card-name {
+  font-weight: 700; font-size: 0.8125rem;
+  color: var(--ink);
+  text-transform: uppercase; letter-spacing: 0.02em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pdf-card-meta {
+  font-size: 0.6875rem; color: var(--ink-muted);
+  margin-top: 1px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.pdf-card-status {
+  padding: 4px 10px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.625rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  border: var(--border-thin);
+  flex-shrink: 0;
+}
+.pdf-card-status.extracting { background: var(--yellow); color: var(--ink); border-color: var(--ink); animation: pulse 1.5s ease infinite; }
+.pdf-card-status.ready { background: var(--green-soft); color: var(--green); border-color: var(--green); }
+.pdf-card-status.error { background: var(--red-soft); color: var(--red); border-color: var(--red); }
+.pdf-card-status.analyzing { background: var(--blue-soft, #e8f0fe); color: var(--blue); border-color: var(--blue); animation: pulse 1.5s ease infinite; }
+
+.pdf-card-remove {
+  width: 28px; height: 28px; flex-shrink: 0;
+  border: var(--border-thin); background: var(--paper);
+  color: var(--ink-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--t-fast);
+}
+.pdf-card-remove:hover { color: var(--red); background: var(--red-soft); border-color: var(--red); }
+.pdf-card-remove svg { width: 12px; height: 12px; }
+
+.pdf-card-body { padding: 0; }
+
+.pdf-card-text {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 14px 20px;
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'JetBrains Mono', monospace;
+  background-image: repeating-linear-gradient(
+    transparent, transparent 23px,
+    var(--paper-edge) 23px, var(--paper-edge) 24px
+  );
+}
+
+.pdf-card-empty {
+  padding: 20px;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--ink-ghost);
+}
+
+.pdf-card-toggle {
+  width: 100%;
+  padding: 8px;
+  border: none; border-top: var(--border-thin);
+  background: var(--paper);
+  color: var(--ink-muted);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.6875rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all var(--t-fast);
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+}
+.pdf-card-toggle:hover { background: var(--yellow-soft); color: var(--ink); }
+.pdf-card-toggle svg { width: 12px; height: 12px; }
+
+/* ── Add More Button ──── */
+.add-more-btn {
+  width: 100%;
+  margin-top: var(--sp-md);
+  padding: 14px;
+  border: var(--border);
+  border-style: dashed;
+  background: var(--paper);
+  color: var(--ink-muted);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.8125rem; font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer; transition: all var(--t-fast);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.add-more-btn:hover {
+  border-style: solid;
+  box-shadow: var(--shadow-btn);
+  transform: translate(-2px, -2px);
+  background: var(--yellow-soft);
+  color: var(--ink);
+}
+.add-more-btn svg { width: 16px; height: 16px; }
+
 /* ── Analyze Button ────── */
 .analyze-section { display: flex; justify-content: flex-start; margin-top: var(--sp-xl); }
 

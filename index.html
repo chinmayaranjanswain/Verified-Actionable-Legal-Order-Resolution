@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>V.A.L.O.R. — Verified Actionable Legal Order Resolution</title>
-  <meta name="description" content="AI-powered decision-support system that converts court judgment PDFs into structured, actionable compliance plans. Powered by Colab LLM." />
+  <meta name="description" content="Hybrid AI system that extracts structured actionable insights from court judgment PDFs using rule-based extraction + optional LLM refinement." />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/src/styles/index.css" />
   <link rel="stylesheet" href="/src/styles/components.css" />
@@ -44,7 +44,7 @@
     <div class="app-container">
       <div class="upload-page-hero">
         <h1>ANALYZE<br><span class="highlight">COURT</span><br>JUDGMENTS</h1>
-        <p>Upload court judgment PDFs and let the Colab LLM extract actionable directives, deadlines, and compliance plans. Supports batch processing of 20+ files.</p>
+        <p>Upload court judgment PDFs — supports multiple files. Each PDF gets its own extraction view.</p>
       </div>
 
       <div class="drop-zone" id="drop-zone">
@@ -52,36 +52,23 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </div>
         <h3>Drop your judgment PDFs here</h3>
-        <p>or <span class="browse-link">browse files</span> — PDF only, up to 50MB each. Multiple files supported.</p>
+        <p>or <span class="browse-link">browse files</span> — PDF only, up to 50MB each</p>
       </div>
       <input type="file" accept=".pdf" class="file-input-hidden" id="file-input" multiple />
 
-      <div class="file-info" id="file-info">
-        <div class="file-info-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
-        </div>
-        <div class="file-info-details">
-          <div class="file-info-name" id="file-name">document.pdf</div>
-          <div class="file-info-meta" id="file-meta">0 KB</div>
-        </div>
-        <button class="file-info-remove" id="file-remove" title="Remove file">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-        </button>
-      </div>
+      <!-- Per-PDF Cards Container -->
+      <div class="pdf-cards-container" id="pdf-cards"></div>
 
-      <!-- Batch Queue -->
-      <div class="batch-queue" id="batch-queue">
-        <div class="batch-queue-header">
-          <span class="batch-queue-title">Batch Queue</span>
-          <span class="batch-queue-count" id="batch-count">0/0</span>
-        </div>
-        <div class="batch-queue-list" id="batch-list"></div>
-      </div>
+      <!-- Add More Files Button (shown after first upload) -->
+      <button class="add-more-btn" id="btn-add-more" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        Add More PDFs
+      </button>
 
       <div class="analyze-section">
         <button class="btn btn-primary btn-analyze" id="btn-analyze" disabled>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          Analyze Document
+          Analyze All Documents
         </button>
       </div>
 
