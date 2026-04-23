@@ -40,7 +40,17 @@ export async function extractTextFromPDF(file, onProgress) {
   for (let i = 1; i <= totalPages; i++) {
     const page = await pdf.getPage(i);
     const textContent = await page.getTextContent();
-    const pageText = textContent.items.map(item => item.str).join(' ');
+    // Preserve paragraph/line structure for better LLM comprehension
+    let pageText = '';
+    let lastY = null;
+    for (const item of textContent.items) {
+      if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) {
+        pageText += '\n'; // New line when Y position changes significantly
+      }
+      pageText += item.str;
+      if (item.hasEOL) pageText += '\n';
+      lastY = item.transform[5];
+    }
 
     if (pageText.trim().length > 10) {
       hasText = true;

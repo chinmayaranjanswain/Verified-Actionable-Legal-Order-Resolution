@@ -1,141 +1,192 @@
-// V.A.L.O.R. — Gemini AI Engine (Optimized)
+// V.A.L.O.R. — Hybrid AI Engine
+// Pipeline: Rule-Based (primary) → LLM Refinement (optional)
+// System MUST work even if LLM/Colab is completely down
 
-import { EXTRACTION_PROMPT, FALLBACK_RESPONSE, preprocessJudgmentText } from '../utils/prompts.js';
-import { parseAIResponse, validateExtraction } from './validator.js';
+import { cleanOCRText, extractOrderSection, preprocessForLLM } from '../utils/prompts.js';
+import { extractWithRules } from './ruleEngine.js';
+import { mapColabResponse, mapRuleResponse, validateExtraction } from './validator.js';
+import { getColabUrl } from './storage.js';
 
-const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-
-export async function analyzeWithAI(text, onProgress) {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-  if (!apiKey || apiKey === 'your_api_key_here') {
-    console.warn('No Gemini API key. Demo mode.');
-    return simulateAIResponse(text, onProgress);
+// ── Health Check ─────────────────────────────────────────────────
+export async function checkColabHealth(url) {
+  try {
+    const resp = await fetch(`${url}/health`, { signal: AbortSignal.timeout(8000) });
+    if (!resp.ok) return { ok: false, error: `HTTP ${resp.status}` };
+    const data = await resp.json();
+    return { ok: true, ...data };
+  } catch (e) {
+    return { ok: false, error: e.message };
   }
+}
 
+// ═══════════════════════════════════════════════════════════════════
+// MAIN HYBRID ANALYSIS FUNCTION
+// ═══════════════════════════════════════════════════════════════════
+export async function analyzeWithAI(text, onProgress) {
   if (onProgress) onProgress(5);
 
-  // ── Step 1: Preprocess — isolate ORDER section ──
-  const processedText = preprocessJudgmentText(text);
-  console.log(`[VALOR] Original: ${text.length} chars → Processed: ${processedText.length} chars`);
-
+  // ━━━ STEP 1: Clean text ━━━
+  const cleaned = cleanOCRText(text);
+  console.log(`[VALOR] Cleaned: ${text.length} → ${cleaned.length} chars`);
   if (onProgress) onProgress(15);
 
-  const prompt = EXTRACTION_PROMPT + processedText;
+  // ━━━ STEP 2: Extract ORDER section ━━━
+  const orderSection = extractOrderSection(cleaned);
+  console.log(`[VALOR] Order section: ${orderSection.length} chars`);
+  if (onProgress) onProgress(25);
 
-  // ── Step 2: Call Gemini with optimized params ──
-  const MAX_RETRIES = 2;
-  let lastError = null;
+  // ━━━ STEP 3: RULE-BASED EXTRACTION (PRIMARY) ━━━
+  console.log('[VALOR] Running rule-based extraction (primary engine)...');
+  const ruleResult = extractWithRules(cleaned, orderSection);
+  console.log(`[VALOR] Rule engine: ${ruleResult._confidence * 100}% confidence, method: ${ruleResult._method}`);
+  if (onProgress) onProgress(50);
 
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  // Map rule result to V.A.L.O.R. internal schema
+  let mappedData = mapRuleResponse(ruleResult);
+
+  // ━━━ STEP 4: LLM REFINEMENT (OPTIONAL) ━━━
+  const colabUrl = getColabUrl();
+  let llmUsed = false;
+  let llmConfidence = 0;
+
+  if (colabUrl) {
+    console.log('[VALOR] Colab URL configured — attempting LLM refinement...');
+    if (onProgress) onProgress(60);
+
     try {
-      if (onProgress) onProgress(20 + attempt * 10);
+      const llmResult = await callColabLLM(colabUrl, orderSection);
 
-      const response = await fetch(`${API_URL}?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.2,        // Low = more accurate, less creative
-            topP: 0.9,
-            topK: 40,
-            maxOutputTokens: 800,    // Enough for structured JSON, prevents rambling
-            responseMimeType: 'application/json'  // Force JSON output
-          }
-        })
-      });
+      if (llmResult && llmResult.result) {
+        console.log(`[VALOR] LLM refinement success: ${llmResult.confidence * 100}% confidence`);
+        llmUsed = true;
+        llmConfidence = llmResult.confidence;
 
-      if (onProgress) onProgress(65 + attempt * 5);
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error?.message || `API ${response.status}`);
+        // MERGE: LLM refines the rule-based output (doesn't replace it)
+        mappedData = mergeResults(mappedData, llmResult.result, llmResult.confidence);
+        if (onProgress) onProgress(85);
       }
-
-      const result = await response.json();
-      const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (!rawText) throw new Error('Empty response from Gemini');
-
-      if (onProgress) onProgress(85);
-
-      // ── Step 3: Parse + Validate ──
-      const parsed = parseAIResponse(rawText);
-      const validated = validateExtraction(parsed);
-
-      if (onProgress) onProgress(100);
-
-      return {
-        ...validated,
-        sourceText: text,
-        rawResponse: rawText,
-        preprocessedLength: processedText.length,
-        attempt: attempt + 1
-      };
-
-    } catch (error) {
-      lastError = error;
-      console.warn(`[VALOR] Attempt ${attempt + 1} failed:`, error.message);
-
-      if (attempt < MAX_RETRIES) {
-        // Wait before retry (exponential backoff)
-        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-      }
+    } catch (e) {
+      console.warn('[VALOR] LLM refinement failed (non-critical):', e.message);
+      // System continues with rule-based results — this is fine
     }
+  } else {
+    console.log('[VALOR] No Colab URL — using rule-based results only (this is fine)');
   }
 
-  // All retries exhausted
-  console.error('[VALOR] All attempts failed:', lastError);
+  if (onProgress) onProgress(90);
+
+  // ━━━ STEP 5: VALIDATE ━━━
+  const validated = validateExtraction(mappedData);
+  console.log(`[VALOR] Final: valid=${validated.valid}, errors=${validated.errors.length}, method=${llmUsed ? 'hybrid' : 'rule-based'}`);
   if (onProgress) onProgress(100);
 
   return {
-    valid: false,
-    errors: [lastError.message],
-    data: FALLBACK_RESPONSE,
+    ...validated,
     sourceText: text,
-    rawResponse: null
+    rawResponse: JSON.stringify(ruleResult, null, 2),
+    preprocessedLength: orderSection.length,
+    ruleConfidence: ruleResult._confidence,
+    llmUsed,
+    llmConfidence,
+    method: llmUsed ? 'hybrid (rules + LLM)' : 'rule-based only'
   };
 }
 
-// ── Demo mode ──────────────
-async function simulateAIResponse(text, onProgress) {
-  for (let i = 0; i <= 100; i += 10) {
-    await new Promise(r => setTimeout(r, 200));
-    if (onProgress) onProgress(i);
+// ═══════════════════════════════════════════════════════════════════
+// COLAB LLM CALL (optional refinement only)
+// ═══════════════════════════════════════════════════════════════════
+async function callColabLLM(colabUrl, text) {
+  const MAX_RETRIES = 2;
+  let lastError = null;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      console.log(`[VALOR] LLM attempt ${attempt + 1}/${MAX_RETRIES}...`);
+
+      const response = await fetch(`${colabUrl}/process`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text.substring(0, 12000) }),
+        signal: AbortSignal.timeout(90000) // 90s timeout
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.error && !result.result) throw new Error(result.error);
+
+      return result;
+
+    } catch (error) {
+      lastError = error;
+      console.warn(`[VALOR] LLM attempt ${attempt + 1} failed:`, error.message);
+      if (attempt < MAX_RETRIES - 1) {
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
   }
 
-  // Regex extraction from raw text for demo
-  const caseMatch = text.match(/(?:W\.?P\.?\s*\(?C\)?\s*(?:No\.?)?\s*\d+\/\d{4})|(?:Case\s*No\.?\s*[\w\/\-]+)/i);
-  const dateMatch = text.match(/\d{1,2}[\.\-\/]\d{1,2}[\.\-\/]\d{2,4}/);
-  const courtMatch = text.match(/(?:High\s+Court|Supreme\s+Court|District\s+Court|Tribunal)[\w\s,]*/i);
+  throw lastError || new Error('LLM call failed');
+}
 
-  const demoData = {
-    caseDetails: {
-      caseNumber: caseMatch ? caseMatch[0] : 'WP(C) No. 2847/2024',
-      courtName: courtMatch ? courtMatch[0].trim() : 'High Court of Delhi',
-      dateOfOrder: dateMatch ? dateMatch[0] : '15-03-2024',
-      partiesInvolved: 'State Government vs. Petitioner',
-      judgeName: 'Hon\'ble Justice Demo',
-      confidence: 0.72
-    },
-    keyDirections: [
-      { text: 'The respondent department shall release all pending salary arrears within 30 days from the date of this order.', type: 'mandatory', deadline: '30 days', confidence: 0.88 },
-      { text: 'A compliance report shall be submitted to the Registry within 45 days.', type: 'mandatory', deadline: '45 days', confidence: 0.82 },
-      { text: 'The department may consider revising the existing policy framework to prevent future occurrences.', type: 'recommended', deadline: 'N/A', confidence: 0.65 }
-    ],
-    actionPlan: {
-      decision: 'Comply',
-      actionRequired: 'Release pending salary arrears and submit compliance report to court registry',
-      responsibleDepartment: 'Education Department',
-      deadline: '30 days from order date',
-      priority: 'High',
-      financialImplication: 'Salary arrears amount as per service records',
-      riskIfNotComplied: 'Contempt proceedings may be initiated',
-      confidence: 0.80
+// ═══════════════════════════════════════════════════════════════════
+// MERGE: Rule-based + LLM results
+// Rule-based is the foundation. LLM can only FILL GAPS or IMPROVE.
+// LLM cannot OVERWRITE a non-empty rule-based field with "Not Found".
+// ═══════════════════════════════════════════════════════════════════
+function mergeResults(ruleData, llmData, llmConfidence) {
+  if (!llmData || typeof llmData !== 'object') return ruleData;
+
+  const merged = JSON.parse(JSON.stringify(ruleData));
+  const llmMapped = mapColabResponse(llmData, llmConfidence);
+  if (!llmMapped) return merged;
+
+  // Case Details: LLM fills gaps only
+  const cd = merged.caseDetails;
+  const lcd = llmMapped.caseDetails;
+  if (isEmpty(cd.caseNumber) && !isEmpty(lcd.caseNumber)) cd.caseNumber = lcd.caseNumber;
+  if (isEmpty(cd.courtName) && !isEmpty(lcd.courtName)) cd.courtName = lcd.courtName;
+  if (isEmpty(cd.dateOfOrder) && !isEmpty(lcd.dateOfOrder)) cd.dateOfOrder = lcd.dateOfOrder;
+  if (isEmpty(cd.partiesInvolved) && !isEmpty(lcd.partiesInvolved)) cd.partiesInvolved = lcd.partiesInvolved;
+  if (isEmpty(cd.judgeName) && !isEmpty(lcd.judgeName)) cd.judgeName = lcd.judgeName;
+
+  // Key Directions: LLM can ADD more directions, not replace existing ones
+  if (llmMapped.keyDirections && llmMapped.keyDirections.length > 0) {
+    const existingTexts = new Set(merged.keyDirections.map(d => d.text.substring(0, 50).toLowerCase()));
+    for (const llmDir of llmMapped.keyDirections) {
+      const prefix = llmDir.text.substring(0, 50).toLowerCase();
+      if (!existingTexts.has(prefix)) {
+        llmDir.confidence = Math.min(llmDir.confidence || 0.7, 0.85); // Cap LLM-only confidence
+        merged.keyDirections.push(llmDir);
+      }
     }
-  };
+  }
 
-  const validated = validateExtraction(demoData);
-  return { ...validated, sourceText: text, rawResponse: JSON.stringify(demoData, null, 2), isDemo: true };
+  // Action Plan: LLM fills gaps only
+  const ap = merged.actionPlan;
+  const lap = llmMapped.actionPlan;
+  if (isEmpty(ap.decision) || ap.decision === 'Seek Clarification') ap.decision = lap.decision;
+  if (isEmpty(ap.actionRequired)) ap.actionRequired = lap.actionRequired;
+  if (isEmpty(ap.responsibleDepartment)) ap.responsibleDepartment = lap.responsibleDepartment;
+  if (isEmpty(ap.deadline)) ap.deadline = lap.deadline;
+  if (isEmpty(ap.financialImplication) || ap.financialImplication === 'N/A') {
+    if (!isEmpty(lap.financialImplication) && lap.financialImplication !== 'N/A') ap.financialImplication = lap.financialImplication;
+  }
+  if (isEmpty(ap.riskIfNotComplied) || ap.riskIfNotComplied === 'Not assessed') {
+    if (!isEmpty(lap.riskIfNotComplied) && lap.riskIfNotComplied !== 'Not assessed') ap.riskIfNotComplied = lap.riskIfNotComplied;
+  }
+
+  // Boost confidence slightly if LLM confirmed rule-based findings
+  const boost = llmConfidence > 0.5 ? 0.05 : 0;
+  cd.confidence = Math.min(1, (cd.confidence || 0) + boost);
+  ap.confidence = Math.min(1, (ap.confidence || 0) + boost);
+
+  return merged;
+}
+
+function isEmpty(val) {
+  return !val || val === 'Not Found' || val === 'N/A' || val === 'Not determined' || val === 'Not assessed';
 }

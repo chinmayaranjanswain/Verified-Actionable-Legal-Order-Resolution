@@ -4,13 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>V.A.L.O.R. — Verified Actionable Legal Order Resolution</title>
-  <meta name="description" content="AI-powered decision-support system that converts court judgment PDFs into structured, actionable compliance plans." />
+  <meta name="description" content="AI-powered decision-support system that converts court judgment PDFs into structured, actionable compliance plans. Powered by Colab LLM." />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/src/styles/index.css" />
   <link rel="stylesheet" href="/src/styles/components.css" />
   <link rel="stylesheet" href="/src/styles/upload.css" />
   <link rel="stylesheet" href="/src/styles/results.css" />
   <link rel="stylesheet" href="/src/styles/dashboard.css" />
+  <link rel="stylesheet" href="/src/styles/settings.css" />
 </head>
 <body>
 
@@ -30,6 +31,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
           Dashboard
         </button>
+        <button class="nav-tab" id="tab-settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          Settings
+        </button>
       </div>
     </div>
   </header>
@@ -39,17 +44,17 @@
     <div class="app-container">
       <div class="upload-page-hero">
         <h1>ANALYZE<br><span class="highlight">COURT</span><br>JUDGMENTS</h1>
-        <p>Upload a court judgment PDF and let AI extract actionable directives, deadlines, and compliance plans for your department.</p>
+        <p>Upload court judgment PDFs and let the Colab LLM extract actionable directives, deadlines, and compliance plans. Supports batch processing of 20+ files.</p>
       </div>
 
       <div class="drop-zone" id="drop-zone">
         <div class="drop-zone-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </div>
-        <h3>Drop your judgment PDF here</h3>
-        <p>or <span class="browse-link">browse files</span> — PDF only, up to 50MB</p>
+        <h3>Drop your judgment PDFs here</h3>
+        <p>or <span class="browse-link">browse files</span> — PDF only, up to 50MB each. Multiple files supported.</p>
       </div>
-      <input type="file" accept=".pdf" class="file-input-hidden" id="file-input" />
+      <input type="file" accept=".pdf" class="file-input-hidden" id="file-input" multiple />
 
       <div class="file-info" id="file-info">
         <div class="file-info-icon">
@@ -64,6 +69,15 @@
         </button>
       </div>
 
+      <!-- Batch Queue -->
+      <div class="batch-queue" id="batch-queue">
+        <div class="batch-queue-header">
+          <span class="batch-queue-title">Batch Queue</span>
+          <span class="batch-queue-count" id="batch-count">0/0</span>
+        </div>
+        <div class="batch-queue-list" id="batch-list"></div>
+      </div>
+
       <div class="analyze-section">
         <button class="btn btn-primary btn-analyze" id="btn-analyze" disabled>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -73,8 +87,8 @@
 
       <div class="pipeline-container" id="pipeline-container">
         <div class="pipeline-header">
-          <h2>Processing Pipeline</h2>
-          <p>Analyzing your document through 4 stages</p>
+          <h2>Hybrid Processing Pipeline</h2>
+          <p>Rule-based extraction (primary) + LLM refinement (optional)</p>
         </div>
         <div class="pipeline-steps">
           <div class="pipeline-step" id="step-load">
@@ -95,20 +109,29 @@
             </div>
             <div class="step-percentage">0%</div>
           </div>
-          <div class="pipeline-step" id="step-ai">
+          <div class="pipeline-step" id="step-clean">
             <div class="step-indicator">3</div>
             <div class="step-content">
-              <div class="step-label">AI Analysis</div>
-              <div class="step-desc">Extracting entities and directives</div>
+              <div class="step-label">Rule-Based Extraction</div>
+              <div class="step-desc">Regex + heuristics (primary engine)</div>
+              <div class="step-progress"><div class="step-progress-fill"></div></div>
+            </div>
+            <div class="step-percentage">0%</div>
+          </div>
+          <div class="pipeline-step" id="step-ai">
+            <div class="step-indicator">4</div>
+            <div class="step-content">
+              <div class="step-label">LLM Refinement</div>
+              <div class="step-desc">Optional — fills gaps via Colab API</div>
               <div class="step-progress"><div class="step-progress-fill"></div></div>
             </div>
             <div class="step-percentage">0%</div>
           </div>
           <div class="pipeline-step" id="step-validate">
-            <div class="step-indicator">4</div>
+            <div class="step-indicator">5</div>
             <div class="step-content">
               <div class="step-label">Validation</div>
-              <div class="step-desc">Verifying output schema</div>
+              <div class="step-desc">Verifying output + confidence check</div>
               <div class="step-progress"><div class="step-progress-fill"></div></div>
             </div>
             <div class="step-percentage">0%</div>
@@ -123,6 +146,9 @@
 
   <!-- Dashboard Page -->
   <div class="page" id="page-dashboard"></div>
+
+  <!-- Settings Page -->
+  <div class="page" id="page-settings"></div>
 
   <div class="toast-container"></div>
   <script type="module" src="/src/main.js"></script>

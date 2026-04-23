@@ -1,6 +1,7 @@
-// V.A.L.O.R. — localStorage CRUD
+// V.A.L.O.R. — localStorage CRUD + Colab Config
 
 const STORAGE_KEY = 'valor_records';
+const COLAB_URL_KEY = 'valor_colab_url';
 
 export function getRecords() {
   try {
@@ -47,6 +48,29 @@ export function getStats() {
       return new Date(r.deadlineDate) < new Date();
     }).length
   };
+}
+
+// ── Colab URL Persistence ────────────────────────────────────────
+export function getColabUrl() {
+  // Priority: localStorage > env variable
+  const stored = localStorage.getItem(COLAB_URL_KEY);
+  if (stored) return stored;
+
+  const envUrl = import.meta.env.VITE_COLAB_URL;
+  if (envUrl) return envUrl;
+
+  return '';
+}
+
+export function setColabUrl(url) {
+  // Clean URL: remove trailing slash
+  const clean = url ? url.replace(/\/+$/, '').trim() : '';
+  if (clean) {
+    localStorage.setItem(COLAB_URL_KEY, clean);
+  } else {
+    localStorage.removeItem(COLAB_URL_KEY);
+  }
+  return clean;
 }
 
 // Theme persistence

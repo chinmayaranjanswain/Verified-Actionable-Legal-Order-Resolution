@@ -1,111 +1,133 @@
-// V.A.L.O.R. — Optimized LLM Prompts for Legal Document Analysis
+// V.A.L.O.R. — Text Processing: OCR Cleaning + ORDER Extraction
+// No LLM prompt here — prompt lives on Colab backend
 
-// ── Text Preprocessor: Extract ORDER section for higher accuracy ──
-export function preprocessJudgmentText(text) {
-  // 1. Try to isolate the ORDER / final ruling section
-  const orderMarkers = [
-    'ORDER', 'O R D E R', 'ORDER:', 'ORDER :-',
-    'JUDGMENT AND ORDER', 'FINAL ORDER',
-    'OPERATIVE ORDER', 'DIRECTIONS',
-    'IT IS ORDERED', 'WE DIRECT', 'THE COURT ORDERS'
+// ── Context-Aware OCR Text Cleaning ──────────────────────────────
+export function cleanOCRText(text) {
+  if (!text) return '';
+
+  let cleaned = text;
+
+  // 1. Remove PDF page markers
+  cleaned = cleaned.replace(/---\s*Page\s*\d+\s*(?:\(OCR\))?\s*---\n?/gi, '\n');
+
+  // 2. Fix common ligature issues from OCR
+  cleaned = cleaned.replace(/ﬁ/g, 'fi');
+  cleaned = cleaned.replace(/ﬂ/g, 'fl');
+  cleaned = cleaned.replace(/ﬀ/g, 'ff');
+  cleaned = cleaned.replace(/ﬃ/g, 'ffi');
+  cleaned = cleaned.replace(/ﬄ/g, 'ffl');
+
+  // 3. Fix common OCR misreads — CONTEXT-AWARE (only in word context, not numbers)
+  // Only replace 0→O when surrounded by letters (not digits)
+  cleaned = cleaned.replace(/(?<=[A-Za-z])0(?=[A-Za-z])/g, 'O');
+  // Only replace l→I when it appears as standalone "l" meaning "I" (pronoun)
+  cleaned = cleaned.replace(/\bl\b(?=\s+(?:am|was|have|had|will|shall|would|could|should|may|can|do|did))/gi, 'I');
+
+  // 4. Fix broken words from line wrapping
+  cleaned = cleaned.replace(/(\w)-\s*\n\s*(\w)/g, '$1$2');
+
+  // 5. Normalize whitespace
+  cleaned = cleaned.replace(/[ \t]+/g, ' ');             // Multiple spaces → single
+  cleaned = cleaned.replace(/(\n\s*){3,}/g, '\n\n');      // 3+ newlines → 2
+  cleaned = cleaned.replace(/^\s+$/gm, '');               // Blank lines with spaces
+
+  // 6. Fix common OCR artifacts
+  cleaned = cleaned.replace(/[|]/g, 'I');                  // Pipe → I (common OCR error in text)
+  cleaned = cleaned.replace(/\u00A0/g, ' ');               // Non-breaking space → space
+  cleaned = cleaned.replace(/[\u200B-\u200D\uFEFF]/g, ''); // Zero-width chars
+
+  // 7. Strip repeated page headers/footers (common in judgments)
+  // Remove lines that repeat frequently (likely headers)
+  const lines = cleaned.split('\n');
+  const lineCounts = {};
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.length > 5 && trimmed.length < 80) {
+      lineCounts[trimmed] = (lineCounts[trimmed] || 0) + 1;
+    }
+  }
+  // Remove lines that appear 3+ times (likely headers/footers)
+  const repeatedLines = new Set(
+    Object.entries(lineCounts)
+      .filter(([, count]) => count >= 3)
+      .map(([line]) => line)
+  );
+  if (repeatedLines.size > 0) {
+    cleaned = lines.filter(l => !repeatedLines.has(l.trim())).join('\n');
+  }
+
+  // 8. Normalize common date separators
+  // Don't change the dates, just normalize odd OCR artifacts in date areas
+  cleaned = cleaned.replace(/(\d{1,2})\s*[.]\s*(\d{1,2})\s*[.]\s*(\d{4})/g, '$1.$2.$3');
+
+  return cleaned.trim();
+}
+
+// ── ORDER Section Extractor ──────────────────────────────────────
+export function extractOrderSection(text) {
+  if (!text) return '';
+
+  const textUpper = text.toUpperCase();
+
+  // Prioritized markers — most specific first
+  const markers = [
+    'O R D E R', 'ORDER :-', 'ORDER:',
+    'OPERATIVE ORDER', 'FINAL ORDER',
+    'JUDGMENT AND ORDER', 'IT IS HEREBY ORDERED',
+    'IT IS ORDERED', 'WE DIRECT', 'THE COURT ORDERS',
+    'OPERATIVE PART', 'DIRECTIONS:',
+    'ORDER', 'JUDGMENT:', 'J U D G M E N T',
+    'DISPOSED OF', 'WRIT PETITION IS ALLOWED',
+    'PETITION IS ALLOWED', 'APPEAL IS ALLOWED',
+    'APPEAL IS DISMISSED', 'ACCORDINGLY'
   ];
 
   let orderText = null;
-  for (const marker of orderMarkers) {
-    const idx = text.toUpperCase().lastIndexOf(marker);
-    if (idx !== -1 && idx > text.length * 0.3) {
-      // Found ORDER section in the latter part of the document
+  let markerUsed = null;
+
+  for (const marker of markers) {
+    const idx = textUpper.lastIndexOf(marker);
+    // Only use if found in the latter 60% of document
+    if (idx !== -1 && idx > text.length * 0.25) {
       orderText = text.substring(idx);
+      markerUsed = marker;
       break;
     }
   }
 
-  // 2. If ORDER section found, use it + last chunk for context
-  if (orderText && orderText.length > 200) {
-    // Also grab some context from before the ORDER (case details usually at top)
-    const headerContext = text.substring(0, Math.min(2000, text.length));
-    const combined = headerContext + '\n\n--- ORDER SECTION ---\n\n' + orderText;
-    return combined.substring(0, 8000);
+  // Build output: header context + order section
+  // Always include the first part for case metadata
+  const headerSize = Math.min(4000, text.length);
+  const headerContext = text.substring(0, headerSize);
+
+  if (orderText && orderText.length > 80) {
+    console.log(`[VALOR] ORDER section found via marker: "${markerUsed}" (${orderText.length} chars)`);
+    const combined = headerContext + '\n\n--- ORDER / RULING SECTION ---\n\n' + orderText;
+    // Limit to ~12000 chars to stay within Phi-3's 4K token window
+    return combined.substring(0, 12000);
   }
 
-  // 3. Fallback: Use first 2000 chars (metadata) + last 3000 chars (ORDER usually at end)
-  if (text.length > 5000) {
-    const header = text.substring(0, 2000);
-    const tail = text.substring(text.length - 3000);
-    return header + '\n\n--- END OF JUDGMENT ---\n\n' + tail;
+  // Fallback: header + last part of document (ORDER is usually at the end)
+  console.log('[VALOR] No ORDER marker found — using header + tail fallback');
+  if (text.length > 8000) {
+    const tail = text.substring(text.length - 5000);
+    return headerContext + '\n\n--- DOCUMENT END ---\n\n' + tail;
   }
 
-  return text;
+  return text.substring(0, 12000);
 }
 
-// ── Main Extraction Prompt (with few-shot example) ──
-export const EXTRACTION_PROMPT = `You are V.A.L.O.R., an expert legal AI assistant helping Indian government officers understand court judgments.
+// ── Full Preprocessing Pipeline ──────────────────────────────────
+export function preprocessForLLM(rawText) {
+  const cleaned = cleanOCRText(rawText);
+  const focused = extractOrderSection(cleaned);
 
-Your task: Extract structured information and generate an actionable compliance plan.
+  console.log(`[VALOR] Preprocessing: ${rawText.length} → ${cleaned.length} (cleaned) → ${focused.length} (focused)`);
 
-IMPORTANT INSTRUCTIONS:
-- Focus ONLY on actionable content, especially the ORDER or final ruling section
-- Ignore arguments, background, and legal reasoning unless needed for context
-- Be precise and confident in your extraction
-- If information is genuinely missing, write "Not Found" — do NOT guess
-- Always return VALID JSON only. No explanation, no markdown.
-
---- FEW-SHOT EXAMPLE ---
-
-Input:
-"WP(C) No. 5678/2023 — High Court of Orissa, decided on 12-01-2024.
-Ramesh Kumar vs State of Odisha. Before Hon'ble Justice A.K. Mishra.
-ORDER: The respondent Education Department is directed to release all pending salary arrears of the petitioner within 30 days from the date of this order. A compliance report shall be filed before this Court within 45 days. The department may also consider revising its policy. Failure to comply may result in contempt proceedings."
-
-Output:
-{
-  "caseDetails": {
-    "caseNumber": "WP(C) No. 5678/2023",
-    "courtName": "High Court of Orissa",
-    "dateOfOrder": "12-01-2024",
-    "partiesInvolved": "Ramesh Kumar vs State of Odisha",
-    "judgeName": "Hon'ble Justice A.K. Mishra",
-    "confidence": 0.95
-  },
-  "keyDirections": [
-    {
-      "text": "Release all pending salary arrears of the petitioner within 30 days",
-      "type": "mandatory",
-      "deadline": "30 days",
-      "confidence": 0.95
-    },
-    {
-      "text": "File compliance report before this Court within 45 days",
-      "type": "mandatory",
-      "deadline": "45 days",
-      "confidence": 0.92
-    },
-    {
-      "text": "Consider revising the existing policy framework",
-      "type": "recommended",
-      "deadline": "N/A",
-      "confidence": 0.70
-    }
-  ],
-  "actionPlan": {
-    "decision": "Comply",
-    "actionRequired": "Release pending salary arrears and submit compliance report to court registry",
-    "responsibleDepartment": "Education Department",
-    "deadline": "30 days from order date",
-    "priority": "High",
-    "financialImplication": "Salary arrears as per service records",
-    "riskIfNotComplied": "Contempt proceedings",
-    "confidence": 0.93
-  }
+  return focused;
 }
 
---- END EXAMPLE ---
-
-Now extract from the following judgment. Return ONLY valid JSON matching the exact schema above.
-
-JUDGMENT TEXT:
-`;
-
+// ── Fallback Response (when Colab is unreachable) ────────────────
 export const FALLBACK_RESPONSE = {
   caseDetails: {
     caseNumber: 'Not Found',
@@ -113,24 +135,24 @@ export const FALLBACK_RESPONSE = {
     dateOfOrder: 'Not Found',
     partiesInvolved: 'Not Found',
     judgeName: 'Not Found',
-    confidence: 0.3
+    confidence: 0.0
   },
   keyDirections: [
     {
-      text: 'Could not extract directions — review source text manually',
+      text: 'Could not connect to Colab LLM — check Settings and ensure Colab notebook is running',
       type: 'mandatory',
       deadline: 'N/A',
-      confidence: 0.2
+      confidence: 0.0
     }
   ],
   actionPlan: {
     decision: 'Seek Clarification',
-    actionRequired: 'Manual review required — AI could not confidently extract action items',
+    actionRequired: 'Connect to Colab LLM engine — paste ngrok URL in Settings',
     responsibleDepartment: 'To be determined',
-    deadline: 'Immediate review recommended',
+    deadline: 'Immediate',
     priority: 'High',
     financialImplication: 'N/A',
-    riskIfNotComplied: 'Unknown — manual assessment needed',
-    confidence: 0.2
+    riskIfNotComplied: 'Unknown — LLM analysis required',
+    confidence: 0.0
   }
 };
