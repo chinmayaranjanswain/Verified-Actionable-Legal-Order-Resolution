@@ -313,3 +313,39 @@
   font-variant-numeric: tabular-nums;
   font-family: 'JetBrains Mono', monospace;
 }
+
+/* ── Upload Mobile ────── */
+@media (max-width: 768px) {
+  .upload-page-hero { margin-bottom: var(--sp-lg); }
+  .drop-zone { padding: var(--sp-xl) var(--sp-md); }
+  .drop-zone-icon { width: 48px; height: 48px; }
+  .drop-zone-icon svg { width: 22px; height: 22px; }
+  .drop-zone h3 { font-size: 0.9375rem; }
+  .pdf-card-header { padding: 10px 14px; flex-wrap: wrap; }
+  .pdf-card-name { font-size: 0.75rem; }
+  .pdf-card-text { padding: 10px 14px; font-size: 0.6875rem; max-height: 140px; }
+  .btn-analyze { padding: 14px 28px; font-size: 0.875rem; }
+  .pipeline-steps { max-width: 100%; }
+  .pipeline-step { padding: 12px 14px; }
+  .add-more-btn { padding: 12px; font-size: 0.75rem; }
+}
+@media (max-width: 480px) {
+  .drop-zone { padding: var(--sp-lg) var(--sp-sm); }
+  .drop-zone-icon { width: 40px; height: 40px; margin-bottom: var(--sp-sm); }
+  .drop-zone h3 { font-size: 0.8125rem; }
+  .drop-zone p { font-size: 0.6875rem; }
+  .pdf-card-header { gap: var(--sp-sm); padding: 8px 10px; }
+  .pdf-card-number { width: 24px; height: 24px; font-size: 0.5625rem; }
+  .pdf-card-name { font-size: 0.6875rem; }
+  .pdf-card-meta { font-size: 0.5625rem; }
+  .pdf-card-status { font-size: 0.5rem; padding: 3px 6px; }
+  .pdf-card-remove { width: 24px; height: 24px; }
+  .pdf-card-text { font-size: 0.625rem; padding: 8px 10px; max-height: 120px; }
+  .pdf-card-toggle { font-size: 0.5625rem; padding: 6px; }
+  .btn-analyze { width: 100%; padding: 14px; font-size: 0.8125rem; }
+  .analyze-section { margin-top: var(--sp-md); }
+  .step-indicator { width: 26px; height: 26px; font-size: 0.625rem; }
+  .step-label { font-size: 0.6875rem; }
+  .step-desc { font-size: 0.5625rem; }
+  .step-percentage { font-size: 0.625rem; min-width: 28px; }
+}
