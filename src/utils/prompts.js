@@ -32,28 +32,38 @@ export function cleanOCRText(text) {
   cleaned = cleaned.replace(/^\s+$/gm, '');               // Blank lines with spaces
 
   // 6. Fix common OCR artifacts
-  cleaned = cleaned.replace(/[|]/g, 'I');                  // Pipe → I (common OCR error in text)
+  // Only replace pipe→I when surrounded by letters (not in tables/formatting)
+  cleaned = cleaned.replace(/(?<=[A-Za-z])\|(?=[A-Za-z])/g, 'I');
   cleaned = cleaned.replace(/\u00A0/g, ' ');               // Non-breaking space → space
   cleaned = cleaned.replace(/[\u200B-\u200D\uFEFF]/g, ''); // Zero-width chars
 
   // 7. Strip repeated page headers/footers (common in judgments)
-  // Remove lines that repeat frequently (likely headers)
+  // CONSERVATIVE: only remove lines that are clearly headers/footers
+  // - Must repeat 5+ times (headers repeat on every page)
+  // - Must be 15-80 chars (too short = section labels, too long = real content)
+  // - Never remove more than 20% of total lines (safeguard)
   const lines = cleaned.split('\n');
   const lineCounts = {};
   for (const line of lines) {
     const trimmed = line.trim();
-    if (trimmed.length > 5 && trimmed.length < 80) {
+    if (trimmed.length >= 15 && trimmed.length < 80) {
       lineCounts[trimmed] = (lineCounts[trimmed] || 0) + 1;
     }
   }
-  // Remove lines that appear 3+ times (likely headers/footers)
   const repeatedLines = new Set(
     Object.entries(lineCounts)
-      .filter(([, count]) => count >= 3)
+      .filter(([, count]) => count >= 5)
       .map(([line]) => line)
   );
   if (repeatedLines.size > 0) {
-    cleaned = lines.filter(l => !repeatedLines.has(l.trim())).join('\n');
+    const filtered = lines.filter(l => !repeatedLines.has(l.trim()));
+    // Safeguard: only apply if we're not removing too much content
+    const removedCount = lines.length - filtered.length;
+    if (removedCount <= lines.length * 0.2) {
+      cleaned = filtered.join('\n');
+    } else {
+      console.warn(`[VALOR] Skipped header stripping — would remove ${removedCount}/${lines.length} lines (>20%)`);
+    }
   }
 
   // 8. Normalize common date separators

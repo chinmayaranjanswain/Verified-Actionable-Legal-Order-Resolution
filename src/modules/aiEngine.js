@@ -10,7 +10,10 @@ import { getColabUrl } from './storage.js';
 // ── Health Check ─────────────────────────────────────────────────
 export async function checkColabHealth(url) {
   try {
-    const resp = await fetch(`${url}/health`, { signal: AbortSignal.timeout(8000) });
+    const resp = await fetch(`${url}/health`, {
+      signal: AbortSignal.timeout(8000),
+      headers: { 'ngrok-skip-browser-warning': 'true' }
+    });
     if (!resp.ok) return { ok: false, error: `HTTP ${resp.status}` };
     const data = await resp.json();
     return { ok: true, ...data };
@@ -105,7 +108,10 @@ async function callColabLLM(colabUrl, text) {
 
       const response = await fetch(`${colabUrl}/process`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
         body: JSON.stringify({ text: text.substring(0, 12000) }),
         signal: AbortSignal.timeout(90000) // 90s timeout
       });

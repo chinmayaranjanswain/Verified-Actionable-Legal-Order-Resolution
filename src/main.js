@@ -3,6 +3,7 @@ import { saveRecord, getRecords, getStats, getColabUrl, setColabUrl, updateRecor
 import { extractTextFromPDF } from './modules/pdfProcessor.js';
 import { performOCR } from './modules/ocrEngine.js';
 import { analyzeWithAI, checkColabHealth } from './modules/aiEngine.js';
+import { cleanOCRText } from './utils/prompts.js';
 import { formatFileSize, getConfidenceClass, getConfidenceLabel, showToast, ICONS, truncate, escapeHtml } from './utils/helpers.js';
 
 let pdfEntries = []; // {file, text, status, result}
@@ -69,7 +70,11 @@ function renderCards() {
     const preview = entry.text ? escapeHtml(entry.text.substring(0, 600)) : '';
     let statusClass, statusLabel;
     if (entry.status === 'done') { const c = Math.round((entry.result?.data?.caseDetails?.confidence||0)*100); statusClass = 'ready'; statusLabel = `Done · ${c}%`; }
-    else if (entry.status === 'ready') { statusClass = 'ready'; statusLabel = `Ready · ${(entry.text.length/1000).toFixed(1)}K chars`; }
+    else if (entry.status === 'ready') {
+      const wordCount = entry.text.split(/\s+/).filter(w => w.length > 0).length;
+      statusClass = 'ready';
+      statusLabel = `Ready · ${wordCount} words · ${(entry.text.length/1000).toFixed(1)}K chars`;
+    }
     else if (entry.status === 'error') { statusClass = 'error'; statusLabel = 'Error'; }
     else { statusClass = 'extracting'; statusLabel = 'Extracting...'; }
     const viewBtn = entry.status === 'done' ? `<button class="pdf-card-toggle" style="background:var(--green-soft);color:var(--green);border-top-color:var(--green)" onclick="window.viewPdfResult(${i})">${ICONS.search} View Analysis Result</button>` : '';
@@ -216,7 +221,8 @@ function renderResults(result) {
         <button class="add-directive-btn" onclick="window.addDirective()">${ICONS.plus} Add Direction</button>
       </div></div>
       <div class="result-section" id="section-source"><div class="section-header"><div class="section-title">${ICONS.file} Source Text</div><div class="pill pill-blue">EXTRACTED</div></div><div class="section-body">
-        <div class="source-text-box">${escapeHtml(truncate(result.sourceText||'',3000))}</div>
+        <div class="source-text-box">${escapeHtml(truncate(result.sourceText||'',8000))}</div>
+        <div style="margin-top:8px;font-size:0.75rem;color:var(--ink-muted)">${(result.sourceText||'').split(/\s+/).filter(w=>w.length>0).length} words · ${(result.sourceText||'').length} chars · Preprocessed: ${result.preprocessedLength||0} chars</div>
       </div></div>
     </div>
     <div class="action-bar">

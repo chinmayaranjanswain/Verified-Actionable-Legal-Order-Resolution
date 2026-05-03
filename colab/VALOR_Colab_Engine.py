@@ -5,7 +5,7 @@
 # ═══════════════════════════════════════════════════════════════════
 
 # ── CELL 1: Install Dependencies ──────────────────────────────────
-# !pip install -q transformers accelerate bitsandbytes flask flask-cors pyngrok torch
+# !pip install -q transformers flask flask-cors pyngrok torch
 
 """
 INSTRUCTIONS:
@@ -27,7 +27,7 @@ This LLM only REFINES results — fills gaps, improves phrasing.
 import torch
 import json
 import re
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -37,20 +37,13 @@ MODEL_NAME = "microsoft/phi-3-mini-4k-instruct"
 print("[VALOR] Loading tokenizer...")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
 
-print("[VALOR] Loading model with 4-bit quantization (T4 GPU)...")
-bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_compute_dtype=torch.float16,
-    bnb_4bit_use_double_quant=True,
-)
-
+print("[VALOR] Loading model in float16 (T4 GPU — 16GB VRAM, model uses ~7.6GB)...")
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME,
-    quantization_config=bnb_config,
     device_map="auto",
     trust_remote_code=True,
     torch_dtype=torch.float16,
+    attn_implementation="eager",
 )
 model.eval()
 print("[VALOR] Model loaded!")
