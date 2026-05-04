@@ -37,12 +37,28 @@ MODEL_NAME = "microsoft/phi-3-mini-4k-instruct"
 print("[VALOR] Loading tokenizer...")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
 
+# ── Patch rope_scaling config (transformers compat fix) ───────────
+# Phi-3's custom modeling code only handles "longrope" scaling.
+# Newer transformers adds rope_scaling with rope_type="default",
+# which Phi-3 doesn't recognize. Disable it unless it's "longrope".
+from transformers import AutoConfig
+_cfg = AutoConfig.from_pretrained(MODEL_NAME, trust_remote_code=True)
+if hasattr(_cfg, "rope_scaling") and _cfg.rope_scaling is not None:
+    rope_type = _cfg.rope_scaling.get("type") or _cfg.rope_scaling.get("rope_type")
+    if rope_type == "longrope":
+        _cfg.rope_scaling.setdefault("type", rope_type)
+        print(f"[VALOR] rope_scaling: longrope (kept)")
+    else:
+        _cfg.rope_scaling = None
+        print(f"[VALOR] rope_scaling was '{rope_type}' — disabled (not needed)")
+
 print("[VALOR] Loading model in float16 (T4 GPU — 16GB VRAM, model uses ~7.6GB)...")
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME,
+    config=_cfg,
     device_map="auto",
     trust_remote_code=True,
-    torch_dtype=torch.float16,
+    dtype=torch.float16,
     attn_implementation="eager",
 )
 model.eval()
@@ -212,15 +228,58 @@ def process():
 
 # ── Start ─────────────────────────────────────────────────────────
 def start_server():
-    from pyngrok import ngrok
-    ngrok.kill()
-    public_url = ngrok.connect(5000)
-    print("\n" + "=" * 60)
-    print("  V.A.L.O.R. REFINEMENT ENGINE (OPTIONAL)")
-    print(f"  URL: {public_url}")
-    print("  Paste this URL into V.A.L.O.R. Settings page")
-    print("  NOTE: System works WITHOUT this — rules handle extraction")
-    print("=" * 60 + "\n")
+    import os
+
+    # ── Try ngrok (needs free authtoken) ──────────────────────────
+    # Get your free token at: https://dashboard.ngrok.com/get-started/your-authtoken
+    ngrok_token = os.environ.get("NGROK_TOKEN", "").strip()
+
+    if not ngrok_token:
+        print("\n" + "=" * 60)
+        print("  NGROK AUTHTOKEN REQUIRED (free)")
+        print("  1. Sign up: https://dashboard.ngrok.com/signup")
+        print("  2. Copy token: https://dashboard.ngrok.com/get-started/your-authtoken")
+        print("  3. Paste below:")
+        print("=" * 60)
+        ngrok_token = input("  Paste your ngrok authtoken: ").strip()
+
+    if ngrok_token:
+        try:
+            from pyngrok import conf, ngrok
+            conf.get_default().auth_token = ngrok_token
+            ngrok.kill()
+            public_url = ngrok.connect(5000)
+            url = str(public_url).replace("NgrokTunnel: ", "").split(" ->")[0].strip('" ')
+            print("\n" + "=" * 60)
+            print("  V.A.L.O.R. REFINEMENT ENGINE (OPTIONAL)")
+            print(f"  URL: {url}")
+            print("  Paste this URL into V.A.L.O.R. Settings page")
+            print("  NOTE: System works WITHOUT this — rules handle extraction")
+            print("=" * 60 + "\n")
+            app.run(port=5000, use_reloader=False)
+            return
+        except Exception as e:
+            print(f"[VALOR] ngrok failed: {e}")
+            print("[VALOR] Falling back to localtunnel...\n")
+
+    # ── Fallback: localtunnel (no signup needed) ──────────────────
+    import subprocess, threading
+    def run_tunnel():
+        proc = subprocess.Popen(
+            ["npx", "-y", "localtunnel", "--port", "5000"],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+        )
+        for line in proc.stdout:
+            if "url" in line.lower() or "https://" in line:
+                print("\n" + "=" * 60)
+                print("  V.A.L.O.R. REFINEMENT ENGINE (OPTIONAL)")
+                print(f"  {line.strip()}")
+                print("  Paste this URL into V.A.L.O.R. Settings page")
+                print("=" * 60 + "\n")
+            else:
+                print(f"  [tunnel] {line.strip()}")
+
+    threading.Thread(target=run_tunnel, daemon=True).start()
     app.run(port=5000, use_reloader=False)
 
 start_server()
