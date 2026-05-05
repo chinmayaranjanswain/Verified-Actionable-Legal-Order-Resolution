@@ -1,11 +1,7 @@
-// V.A.L.O.R. — PDF Text Extraction using PDF.js
-
 let pdfjsLib = null;
 
 async function loadPdfJs() {
   if (pdfjsLib) return pdfjsLib;
-
-  // Load PDF.js from CDN
   if (!window.pdfjsLib) {
     await new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -15,8 +11,6 @@ async function loadPdfJs() {
       script.onerror = reject;
       document.head.appendChild(script);
     });
-
-    // Also try global import approach
     const mod = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
     window.pdfjsLib = mod;
     mod.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
@@ -40,7 +34,6 @@ export async function extractTextFromPDF(file, onProgress) {
   for (let i = 1; i <= totalPages; i++) {
     const page = await pdf.getPage(i);
     const textContent = await page.getTextContent();
-    // Preserve paragraph/line structure for better LLM comprehension
     let pageText = '';
     let lastY = null;
     for (const item of textContent.items) {

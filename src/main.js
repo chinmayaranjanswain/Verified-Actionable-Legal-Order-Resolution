@@ -1,4 +1,3 @@
-// V.A.L.O.R. — Main Application (Hybrid + Per-PDF Cards)
 import { saveRecord, getRecords, getStats, getColabUrl, setColabUrl, updateRecord, deleteRecord } from './modules/storage.js';
 import { extractTextFromPDF } from './modules/pdfProcessor.js';
 import { performOCR } from './modules/ocrEngine.js';
@@ -22,7 +21,6 @@ function navigate(page, fromPage) {
   window.scrollTo(0, 0);
 }
 
-// ═══ UPLOAD ZONE ═══
 function initUploadZone() {
   const dz = document.getElementById('drop-zone'), fi = document.getElementById('file-input');
   if (!dz) return;
@@ -35,14 +33,12 @@ function initUploadZone() {
   document.getElementById('btn-analyze')?.addEventListener('click', runAllAnalysis);
 }
 
-// ═══ ADD FILES → EXTRACT TEXT → SHOW CARDS ═══
 async function addFiles(files) {
   for (const file of files) {
     if (pdfEntries.find(e => e.file.name === file.name && e.file.size === file.size)) continue;
     const entry = { file, text: '', status: 'extracting', result: null, id: Date.now() + Math.random() };
     pdfEntries.push(entry);
     renderCards();
-    // Extract text immediately
     try {
       let res = await extractTextFromPDF(file, () => {});
       if (res.isScanned) { updateCardStatus(entry.id, 'OCR...'); res = await performOCR(file, () => {}); }
@@ -63,7 +59,6 @@ function updateCardStatus(id, label) {
   if (el) el.textContent = label;
 }
 
-// ═══ RENDER PER-PDF CARDS ═══
 function renderCards() {
   const container = document.getElementById('pdf-cards');
   container.innerHTML = pdfEntries.map((entry, i) => {
@@ -124,7 +119,6 @@ window.togglePdfBody = function(idx) {
   if (btn) btn.innerHTML = visible ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg> Show Extracted Text` : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg> Hide Text`;
 };
 
-// ═══ ANALYZE ALL ═══
 async function runAllAnalysis() {
   const ready = pdfEntries.filter(e => e.status === 'ready');
   if (ready.length === 0) { showToast('No new PDFs to analyze — all already processed','warning'); return; }
@@ -190,7 +184,6 @@ async function runSinglePipeline(entry) {
   } catch(err) { showToast('Pipeline failed: '+err.message,'error'); }
 }
 
-// ═══ RESULTS ═══
 function renderResults(result) {
   const page = document.getElementById('page-results'); if (!page) return;
   const d = result.data;
@@ -243,7 +236,6 @@ function rd(dir,i) {
   return `<li class="directive-item"><span class="directive-number">${i+1}</span><div class="directive-text"><textarea class="input-field" data-directive="${i}">${escapeHtml(dir.text)}</textarea><div style="display:flex;gap:6px;margin-top:4px;align-items:center"><span class="pill ${getConfidenceClass(dir.confidence)}" style="font-size:0.625rem">${getConfidenceLabel(dir.confidence)}</span><span style="font-size:0.6875rem;color:var(--ink-muted)">${dir.type} / ${dir.deadline}</span></div></div><div class="directive-actions"><button class="btn-icon" onclick="window.removeDirective(${i})" title="Remove">${ICONS.trash}</button></div></li>`;
 }
 
-// ═══ ACTIONS ═══
 window.goBack = function() { navigate(lastPage || 'upload'); };
 window.approveResults = function() { const e=collectEdits(); e.status='approved'; e.approvedAt=new Date().toISOString(); saveRecord(e); showToast('Record approved','success'); currentResults=null; navigate('dashboard'); };
 window.saveEdits = function() { collectEdits(); showToast('Edits saved locally','success'); };
@@ -259,7 +251,6 @@ function collectEdits() {
   currentResults.data=data; return data;
 }
 
-// ═══ SETTINGS ═══
 function renderSettings() {
   const page=document.getElementById('page-settings'); if(!page)return;
   const url=getColabUrl();
@@ -281,7 +272,6 @@ async function testConn(url) {
   else{s.className='connection-status disconnected';s.innerHTML='<span class="status-dot"></span>Disconnected';showToast('Cannot reach Colab: '+h.error,'error');if(info)info.style.display='none';}
 }
 
-// ═══ DASHBOARD ═══
 function renderDashboard() {
   const page=document.getElementById('page-dashboard'); if(!page)return;
   const stats=getStats();
@@ -323,7 +313,6 @@ window.viewRecord = function(id) {
   navigate('results');
 };
 
-// ═══ INIT ═══
 document.addEventListener('DOMContentLoaded', () => {
   initUploadZone();
   document.getElementById('tab-upload')?.addEventListener('click',()=>navigate('upload'));

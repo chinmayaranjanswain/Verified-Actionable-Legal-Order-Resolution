@@ -6,13 +6,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  /* Paper palette */
   --paper: #FDFBF7;
   --paper-warm: #F8F4EC;
   --paper-deep: #F0EBE0;
   --paper-edge: #E8E2D5;
-
-  /* Ink */
   --ink: #1A1A1A;
   --ink-soft: #3D3D3D;
   --ink-muted: #6B6B6B;
@@ -38,13 +35,9 @@
   --shadow-btn-active: 1px 1px 0 var(--ink);
   --shadow-input: 2px 2px 0 var(--ink);
   --shadow-heavy: 10px 10px 0 var(--ink);
-
-  /* Border */
   --border: 2px solid var(--ink);
   --border-thin: 1px solid var(--ink);
   --border-muted: 1px solid var(--ink-ghost);
-
-  /* Spacing */
   --sp-xs: 4px;
   --sp-sm: 8px;
   --sp-md: 16px;
@@ -53,13 +46,10 @@
   --sp-2xl: 48px;
   --sp-3xl: 64px;
   --sp-4xl: 96px;
-
-  /* Transitions */
   --t-fast: 0.12s ease;
   --t-normal: 0.2s ease;
 }
 
-/* ── Reset ───────────────────────────────────────────────── */
 *, *::before, *::after {
   margin: 0; padding: 0;
   box-sizing: border-box;
@@ -89,12 +79,10 @@ body {
   background-attachment: fixed;
 }
 
-/* ── Scrollbar ───────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--paper-warm); }
 ::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 0; }
 
-/* ── Typography ──────────────────────────────────────────── */
 h1, h2, h3, h4 {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 700;
@@ -119,7 +107,6 @@ a:hover { color: var(--red); }
 
 ::selection { background: var(--yellow); color: var(--ink); }
 
-/* ── Layout ──────────────────────────────────────────────── */
 .app-container {
   max-width: 1080px;
   margin: 0 auto;
@@ -133,7 +120,6 @@ a:hover { color: var(--red); }
 }
 .page.active { display: block; }
 
-/* ── Animations ──────────────────────────────────────────── */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }

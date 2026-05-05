@@ -1,10 +1,7 @@
-/* V.A.L.O.R. Dashboard — Paper Brutalist */
-
 .dashboard-header { margin-bottom: var(--sp-xl); }
 .dashboard-header h1 { margin-bottom: var(--sp-xs); }
 .dashboard-header p { font-size: 0.9375rem; }
 
-/* ── Filters ───────────── */
 .filters-row {
   display: flex; align-items: center;
   gap: var(--sp-md);
@@ -15,7 +12,6 @@
 .filter-label { font-size: 0.6875rem; font-weight: 800; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; }
 .filters-right { margin-left: auto; display: flex; gap: var(--sp-sm); }
 
-/* ── Table ─────────────── */
 .table-container {
   background: white;
   border: var(--border);

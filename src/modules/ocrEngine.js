@@ -1,5 +1,3 @@
-// V.A.L.O.R. — Tesseract.js OCR Engine
-
 let worker = null;
 
 async function loadTesseract() {
@@ -19,18 +17,13 @@ export async function performOCR(file, onProgress) {
   const Tesseract = await loadTesseract();
   const { renderPageToCanvas } = await import('./pdfProcessor.js');
   const { extractTextFromPDF } = await import('./pdfProcessor.js');
-
-  // Get page count
   const pdfResult = await extractTextFromPDF(file, () => {});
   const totalPages = pdfResult.pageCount;
 
   let fullText = '';
-
-  // Create worker
   worker = await Tesseract.createWorker('eng', 1, {
     logger: m => {
       if (m.status === 'recognizing text' && onProgress) {
-        // Per-page progress
         onProgress(Math.round(m.progress * 100));
       }
     }

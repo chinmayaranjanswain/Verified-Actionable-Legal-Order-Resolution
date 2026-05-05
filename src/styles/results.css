@@ -1,8 +1,5 @@
-/* V.A.L.O.R. Results — Paper Brutalist */
-
 .results-page { animation: fadeUp 0.4s ease; }
 
-/* ── Back Button ─────────── */
 .back-btn {
   display: inline-flex;
   align-items: center;
@@ -41,7 +38,6 @@
 
 @media (max-width: 768px) { .results-grid { grid-template-columns: 1fr; } }
 
-/* ── Section Cards ─────── */
 .result-section {
   background: white;
   border: var(--border);
@@ -79,7 +75,6 @@
 
 .section-body { padding: 20px; }
 
-/* ── Fields ────────────── */
 .field-row {
   display: flex; align-items: flex-start;
   gap: var(--sp-sm);
@@ -99,7 +94,6 @@
 .field-value { flex: 1; }
 .field-value .input-field { font-size: 0.8125rem; }
 
-/* ── Directives ────────── */
 .directive-list { list-style: none; }
 
 .directive-item {
@@ -146,7 +140,6 @@
 }
 .add-directive-btn svg { width: 14px; height: 14px; }
 
-/* ── Source Text ────────── */
 .source-text-box {
   max-height: 350px;
   overflow-y: auto;
@@ -159,7 +152,6 @@
   white-space: pre-wrap;
   word-break: break-word;
   font-family: 'JetBrains Mono', monospace;
-  /* ruled lines */
   background-image: repeating-linear-gradient(
     transparent,
     transparent 27px,
@@ -168,7 +160,6 @@
   );
 }
 
-/* ── Action Bar ────────── */
 .action-bar {
   display: flex; align-items: center; justify-content: flex-start;
   gap: var(--sp-md);
@@ -177,7 +168,6 @@
 }
 .action-bar .btn { min-width: 150px; }
 
-/* ── Results Mobile ─────── */
 @media (max-width: 768px) {
   .results-header { margin-bottom: var(--sp-md); }
   .results-header p { font-size: 0.8125rem; }

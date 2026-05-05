@@ -1,11 +1,5 @@
-// V.A.L.O.R. — Validator + Schema Mappers (Rule + Colab)
-
 const REQUIRED_CASE_FIELDS = ['caseNumber', 'courtName', 'dateOfOrder', 'partiesInvolved'];
 const REQUIRED_ACTION_FIELDS = ['decision', 'actionRequired', 'responsibleDepartment', 'deadline'];
-
-// ═══════════════════════════════════════════════════════════════════
-// MAP RULE ENGINE OUTPUT → V.A.L.O.R. INTERNAL SCHEMA
-// ═══════════════════════════════════════════════════════════════════
 export function mapRuleResponse(ruleData) {
   if (!ruleData || typeof ruleData !== 'object') return null;
 
@@ -32,8 +26,6 @@ export function mapRuleResponse(ruleData) {
       confidence: conf
     }
   };
-
-  // Map directions array (rule engine returns plain strings)
   const dirs = ruleData.key_directions || [];
   if (Array.isArray(dirs) && dirs.length > 0) {
     mapped.keyDirections = dirs.map(d => ({
@@ -43,8 +35,6 @@ export function mapRuleResponse(ruleData) {
       confidence: conf
     }));
   }
-
-  // Map deadlines
   const deadlines = ruleData.deadlines || [];
   if (deadlines.length > 0) {
     mapped.actionPlan.deadline = deadlines[0];
@@ -52,8 +42,6 @@ export function mapRuleResponse(ruleData) {
       if (dir.deadline === 'N/A' && deadlines[i]) dir.deadline = deadlines[i];
     });
   }
-
-  // Fallback directive
   if (mapped.keyDirections.length === 0) {
     mapped.keyDirections = [{
       text: mapped.actionPlan.actionRequired !== 'Not determined'
@@ -67,10 +55,6 @@ export function mapRuleResponse(ruleData) {
 
   return mapped;
 }
-
-// ═══════════════════════════════════════════════════════════════════
-// MAP COLAB LLM OUTPUT → V.A.L.O.R. INTERNAL SCHEMA
-// ═══════════════════════════════════════════════════════════════════
 export function mapColabResponse(colabData, colabConfidence) {
   if (!colabData || typeof colabData !== 'object') return null;
 
@@ -116,15 +100,9 @@ export function mapColabResponse(colabData, colabConfidence) {
 
   return mapped;
 }
-
-// ═══════════════════════════════════════════════════════════════════
-// VALIDATE EXTRACTION (works for both rule + LLM results)
-// ═══════════════════════════════════════════════════════════════════
 export function validateExtraction(data) {
   const errors = [];
   if (!data || typeof data !== 'object') return { valid: false, errors: ['Response is not a valid object'], data: null };
-
-  // ── caseDetails ──
   if (!data.caseDetails || typeof data.caseDetails !== 'object') { errors.push('Missing caseDetails'); data.caseDetails = {}; }
 
   let caseFound = 0;
@@ -142,8 +120,6 @@ export function validateExtraction(data) {
     data.caseDetails.confidence = Math.round(compCaseConf * 100) / 100;
   }
   data.caseDetails.confidence = clamp(data.caseDetails.confidence, 0, 1);
-
-  // ── keyDirections ──
   if (!Array.isArray(data.keyDirections) || data.keyDirections.length === 0) {
     errors.push('Missing keyDirections');
     data.keyDirections = [{ text: 'No directions extracted', type: 'mandatory', deadline: 'N/A', confidence: 0.3 }];
@@ -154,8 +130,6 @@ export function validateExtraction(data) {
     deadline: d.deadline || 'N/A',
     confidence: clamp(d.confidence || compCaseConf, 0, 1)
   }));
-
-  // ── actionPlan ──
   if (!data.actionPlan || typeof data.actionPlan !== 'object') { errors.push('Missing actionPlan'); data.actionPlan = {}; }
   const ap = data.actionPlan;
   ap.decision = ap.decision || 'Seek Clarification';
@@ -177,9 +151,6 @@ export function validateExtraction(data) {
   return { valid: errors.length === 0, errors, data };
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════════════════
 function clamp(v, min, max) { const n = parseFloat(v); return isNaN(n) ? min : Math.max(min, Math.min(max, n)); }
 
 function normalizeType(t) {
@@ -198,7 +169,6 @@ function normalizePriority(p) {
   return 'Medium';
 }
 
-// Classify directive type based on text content
 function classifyDirectiveType(text) {
   if (!text) return 'mandatory';
   const lower = text.toLowerCase();
@@ -207,7 +177,6 @@ function classifyDirectiveType(text) {
   return 'mandatory';
 }
 
-// Extract deadline from within a directive sentence
 function extractInlineDeadline(text) {
   if (!text) return 'N/A';
   const m = text.match(/within\s+(\d+\s+(?:days?|weeks?|months?|years?))/i);

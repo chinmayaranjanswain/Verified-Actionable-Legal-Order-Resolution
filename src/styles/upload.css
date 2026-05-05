@@ -1,5 +1,3 @@
-/* V.A.L.O.R. Upload — Paper Brutalist */
-
 .upload-page-hero {
   text-align: left;
   margin-bottom: var(--sp-2xl);
@@ -21,7 +19,6 @@
   color: var(--ink-soft);
 }
 
-/* ── Drop Zone ─────────── */
 .drop-zone {
   border: var(--border);
   border-style: dashed;
@@ -61,7 +58,6 @@
 
 .file-input-hidden { display: none; }
 
-/* ── File Info ──────────── */
 .file-info {
   display: none;
   margin-top: var(--sp-md);
@@ -97,7 +93,6 @@
 .file-info-remove:hover { color: var(--red); background: var(--red-soft); border-color: var(--red); }
 .file-info-remove svg { width: 14px; height: 14px; }
 
-/* ── PDF Cards ─────────── */
 .pdf-cards-container {
   display: flex; flex-direction: column;
   gap: var(--sp-md);
@@ -208,7 +203,6 @@
 .pdf-card-toggle:hover { background: var(--yellow-soft); color: var(--ink); }
 .pdf-card-toggle svg { width: 12px; height: 12px; }
 
-/* ── Add More Button ──── */
 .add-more-btn {
   width: 100%;
   margin-top: var(--sp-md);
@@ -233,12 +227,10 @@
 }
 .add-more-btn svg { width: 16px; height: 16px; }
 
-/* ── Analyze Button ────── */
 .analyze-section { display: flex; justify-content: flex-start; margin-top: var(--sp-xl); }
 
 .btn-analyze { padding: 16px 48px; font-size: 1rem; gap: 10px; }
 
-/* ── Pipeline ──────────── */
 .pipeline-container {
   display: none;
   margin-top: var(--sp-xl);
@@ -314,7 +306,6 @@
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* ── Upload Mobile ────── */
 @media (max-width: 768px) {
   .upload-page-hero { margin-bottom: var(--sp-lg); }
   .drop-zone { padding: var(--sp-xl) var(--sp-md); }

@@ -1,12 +1,9 @@
-/* V.A.L.O.R. Settings — Paper Brutalist */
-
 .settings-page { animation: fadeUp 0.4s ease; }
 
 .settings-header { margin-bottom: var(--sp-xl); }
 .settings-header h1 { margin-bottom: var(--sp-xs); }
 .settings-header p { font-size: 0.9375rem; }
 
-/* ── Settings Card ─────── */
 .settings-card {
   background: white;
   border: var(--border);
@@ -34,7 +31,6 @@
 
 .settings-card-body { padding: 20px; }
 
-/* ── Connection Status ──── */
 .connection-status {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 4px 12px;
@@ -56,7 +52,6 @@
 }
 .connection-status.connected .status-dot { animation: pulse 2s ease infinite; }
 
-/* ── URL Input ──────────── */
 .url-input-group {
   display: flex; gap: var(--sp-sm);
   margin-bottom: var(--sp-md);
@@ -71,7 +66,6 @@
 }
 .settings-help strong { color: var(--ink); }
 
-/* ── Model Info ─────────── */
 .model-info {
   display: grid; grid-template-columns: 1fr 1fr;
   gap: var(--sp-sm);
@@ -86,7 +80,6 @@
 .model-info-label { font-weight: 800; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.625rem; }
 .model-info-value { color: var(--ink); font-weight: 600; margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
 
-/* ── Batch Queue ─────────── */
 .batch-queue {
   margin-top: var(--sp-lg);
   border: var(--border);
@@ -140,7 +133,6 @@
 .batch-item-name { flex: 1; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .batch-item-status { font-size: 0.6875rem; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
 
-/* ── Responsive ──────────── */
 @media (max-width: 768px) {
   .model-info { grid-template-columns: 1fr; }
   .url-input-group { flex-direction: column; }

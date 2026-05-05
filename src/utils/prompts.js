@@ -1,47 +1,22 @@
-// V.A.L.O.R. — Text Processing: OCR Cleaning + ORDER Extraction
-// No LLM prompt here — prompt lives on Colab backend
-
-// ── Context-Aware OCR Text Cleaning ──────────────────────────────
 export function cleanOCRText(text) {
   if (!text) return '';
 
   let cleaned = text;
-
-  // 1. Remove PDF page markers
   cleaned = cleaned.replace(/---\s*Page\s*\d+\s*(?:\(OCR\))?\s*---\n?/gi, '\n');
-
-  // 2. Fix common ligature issues from OCR
   cleaned = cleaned.replace(/ﬁ/g, 'fi');
   cleaned = cleaned.replace(/ﬂ/g, 'fl');
   cleaned = cleaned.replace(/ﬀ/g, 'ff');
   cleaned = cleaned.replace(/ﬃ/g, 'ffi');
   cleaned = cleaned.replace(/ﬄ/g, 'ffl');
-
-  // 3. Fix common OCR misreads — CONTEXT-AWARE (only in word context, not numbers)
-  // Only replace 0→O when surrounded by letters (not digits)
   cleaned = cleaned.replace(/(?<=[A-Za-z])0(?=[A-Za-z])/g, 'O');
-  // Only replace l→I when it appears as standalone "l" meaning "I" (pronoun)
   cleaned = cleaned.replace(/\bl\b(?=\s+(?:am|was|have|had|will|shall|would|could|should|may|can|do|did))/gi, 'I');
-
-  // 4. Fix broken words from line wrapping
   cleaned = cleaned.replace(/(\w)-\s*\n\s*(\w)/g, '$1$2');
-
-  // 5. Normalize whitespace
   cleaned = cleaned.replace(/[ \t]+/g, ' ');             // Multiple spaces → single
   cleaned = cleaned.replace(/(\n\s*){3,}/g, '\n\n');      // 3+ newlines → 2
   cleaned = cleaned.replace(/^\s+$/gm, '');               // Blank lines with spaces
-
-  // 6. Fix common OCR artifacts
-  // Only replace pipe→I when surrounded by letters (not in tables/formatting)
   cleaned = cleaned.replace(/(?<=[A-Za-z])\|(?=[A-Za-z])/g, 'I');
   cleaned = cleaned.replace(/\u00A0/g, ' ');               // Non-breaking space → space
   cleaned = cleaned.replace(/[\u200B-\u200D\uFEFF]/g, ''); // Zero-width chars
-
-  // 7. Strip repeated page headers/footers (common in judgments)
-  // CONSERVATIVE: only remove lines that are clearly headers/footers
-  // - Must repeat 5+ times (headers repeat on every page)
-  // - Must be 15-80 chars (too short = section labels, too long = real content)
-  // - Never remove more than 20% of total lines (safeguard)
   const lines = cleaned.split('\n');
   const lineCounts = {};
   for (const line of lines) {
@@ -57,7 +32,6 @@ export function cleanOCRText(text) {
   );
   if (repeatedLines.size > 0) {
     const filtered = lines.filter(l => !repeatedLines.has(l.trim()));
-    // Safeguard: only apply if we're not removing too much content
     const removedCount = lines.length - filtered.length;
     if (removedCount <= lines.length * 0.2) {
       cleaned = filtered.join('\n');
@@ -65,21 +39,14 @@ export function cleanOCRText(text) {
       console.warn(`[VALOR] Skipped header stripping — would remove ${removedCount}/${lines.length} lines (>20%)`);
     }
   }
-
-  // 8. Normalize common date separators
-  // Don't change the dates, just normalize odd OCR artifacts in date areas
   cleaned = cleaned.replace(/(\d{1,2})\s*[.]\s*(\d{1,2})\s*[.]\s*(\d{4})/g, '$1.$2.$3');
 
   return cleaned.trim();
 }
-
-// ── ORDER Section Extractor ──────────────────────────────────────
 export function extractOrderSection(text) {
   if (!text) return '';
 
   const textUpper = text.toUpperCase();
-
-  // Prioritized markers — most specific first
   const markers = [
     'O R D E R', 'ORDER :-', 'ORDER:',
     'OPERATIVE ORDER', 'FINAL ORDER',
@@ -97,28 +64,19 @@ export function extractOrderSection(text) {
 
   for (const marker of markers) {
     const idx = textUpper.lastIndexOf(marker);
-    // Only use if found in the latter 60% of document
     if (idx !== -1 && idx > text.length * 0.25) {
       orderText = text.substring(idx);
       markerUsed = marker;
       break;
     }
   }
-
-  // Build output: header context + order section
-  // Always include the first part for case metadata
   const headerSize = Math.min(4000, text.length);
   const headerContext = text.substring(0, headerSize);
 
   if (orderText && orderText.length > 80) {
-    console.log(`[VALOR] ORDER section found via marker: "${markerUsed}" (${orderText.length} chars)`);
     const combined = headerContext + '\n\n--- ORDER / RULING SECTION ---\n\n' + orderText;
-    // Limit to ~12000 chars to stay within Phi-3's 4K token window
     return combined.substring(0, 12000);
   }
-
-  // Fallback: header + last part of document (ORDER is usually at the end)
-  console.log('[VALOR] No ORDER marker found — using header + tail fallback');
   if (text.length > 8000) {
     const tail = text.substring(text.length - 5000);
     return headerContext + '\n\n--- DOCUMENT END ---\n\n' + tail;
@@ -126,18 +84,12 @@ export function extractOrderSection(text) {
 
   return text.substring(0, 12000);
 }
-
-// ── Full Preprocessing Pipeline ──────────────────────────────────
 export function preprocessForLLM(rawText) {
   const cleaned = cleanOCRText(rawText);
   const focused = extractOrderSection(cleaned);
 
-  console.log(`[VALOR] Preprocessing: ${rawText.length} → ${cleaned.length} (cleaned) → ${focused.length} (focused)`);
-
   return focused;
 }
-
-// ── Fallback Response (when Colab is unreachable) ────────────────
 export const FALLBACK_RESPONSE = {
   caseDetails: {
     caseNumber: 'Not Found',
